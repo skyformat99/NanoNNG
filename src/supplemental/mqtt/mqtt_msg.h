@@ -376,6 +376,14 @@ extern void                nni_mqtt_topic_qos_array_set(
                    nni_mqtt_topic_qos *, size_t, const char *, uint8_t);
 extern void nni_mqtt_topic_qos_array_free(nni_mqtt_topic_qos *, size_t);
 
+// broker usage
+extern conn_param *nni_mqtt_msg_set_conn_param(nni_msg *);
+extern conn_param *nni_mqtt_msg_get_conn_param(nni_msg *);
+
+//TODO incompatible with client sdk
+extern void      nni_msg_proto_set_property(nni_msg *msg, property *prop);
+extern property *nni_msg_proto_get_property(nni_msg *msg);
+
 #ifdef __cplusplus
 }
 #endif
