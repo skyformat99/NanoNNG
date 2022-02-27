@@ -404,7 +404,7 @@ static void
 nni_mqtt_msg_append_byte_str(nni_msg *msg, nni_mqtt_buffer *str)
 {
 	nni_mqtt_msg_append_u16(msg, (uint16_t) str->length);
-	nni_msg_append(msg, str->buf, str->length);
+	nni_msg_append(msg, &str->buf, str->length);
 }
 
 static void
@@ -2219,26 +2219,33 @@ get_properties_len(property *prop)
 		for (property *p = prop->next; p != NULL; p = p->next) {
 			switch (p->data.p_type) {
 			case U8:
+				prop_len++;
 				prop_len += (1 * 2);
 				break;
 			case U16:
+				prop_len++;
 				prop_len += (2 * 2);
 				break;
 			case U32:
+				prop_len++;
 				prop_len += (4 * 2);
 				break;
 			case VARINT:
+				prop_len++;
 				prop_len += (p->data.p_value.varint +
 				    byte_number_for_variable_length(
 				        p->data.p_value.varint));
 				break;
 			case BINARY:
+				prop_len++;
 				prop_len += p->data.p_value.binary.length + 2;
 				break;
 			case STR:
+				prop_len++;
 				prop_len += p->data.p_value.str.length + 2;
 				break;
 			case STR_PAIR:
+				prop_len++;
 				prop_len +=
 				    p->data.p_value.strpair.key.length + 2 +
 				    p->data.p_value.strpair.value.length + 2;
@@ -2261,9 +2268,8 @@ encode_properties(nni_msg *msg, property *prop)
                 .endpos                = &rlen[sizeof(rlen)] };
 
 	uint32_t prop_len = get_properties_len(prop);
-
-	int len = write_variable_length_value(prop_len, &buf);
-	nni_msg_append(msg, rlen, len);
+	int      bytes    = write_variable_length_value(prop_len, &buf);
+	nni_msg_append(msg, rlen, bytes);
 	if (prop_len == 0) {
 		return 0;
 	}
@@ -2294,10 +2300,11 @@ encode_properties(nni_msg *msg, property *prop)
 			    msg, &p->data.p_value.str);
 			break;
 		case STR_PAIR:
-			nni_mqtt_msg_append_byte_str(
-			    msg, &p->data.p_value.strpair.key);
-			nni_mqtt_msg_append_byte_str(
-			    msg, &p->data.p_value.strpair.value);
+			nni_mqtt_msg_append_byte_str(msg,
+			    (nni_mqtt_buffer *) &p->data.p_value.strpair.key);
+			nni_mqtt_msg_append_byte_str(msg,
+			    (nni_mqtt_buffer *) &p->data.p_value.strpair
+			        .value);
 			break;
 
 		default:
