@@ -578,6 +578,9 @@ nano_pipe_start(void *arg)
 	// There is no need to check the  state of aio_recv
 	// Since pipe_start is definetly the first cb to be excuted of pipe.
 	nni_aio_set_msg(&p->aio_recv, msg);
+
+	nni_pipe_run_cb(p, NNG_PIPE_EV_ADD_PRE);
+
 	nni_aio_finish(&p->aio_recv, 0, nni_msg_len(msg));
 	return (rv);
 }
@@ -825,7 +828,10 @@ nano_pipe_recv_cb(void *arg)
 		break;
 	case CMD_DISCONNECT:
 		nni_pipe_close(p->pipe);
+		nni_pipe_run_cb(p->pipe, NNG_PIPE_EV_REM_POST);
 	case CMD_CONNACK:
+		nni_pipe_run_cb(p->pipe, NNG_PIPE_EV_ADD_POST);
+
 	case CMD_PUBLISH:
 	case CMD_PINGREQ:
 		// Websocket need to reply PINGREQ in application layer
