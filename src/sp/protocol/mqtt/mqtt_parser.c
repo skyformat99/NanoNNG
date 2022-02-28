@@ -156,7 +156,7 @@ get_var_integer(const uint8_t *buf, uint32_t *pos)
 
 	do {
 		temp   = *(buf + p);
-		result = result + (uint32_t)(temp & 0x7f) * (power(0x80, i));
+		result = result + (uint32_t) (temp & 0x7f) * (power(0x80, i));
 		p++;
 	} while ((temp & 0x80) > 0 && i++ < 4);
 	*pos = p;
@@ -401,10 +401,9 @@ auto_id_prefix_len)
 int32_t
 conn_handler(uint8_t *packet, conn_param *cparam)
 {
-	uint32_t len, tmp, pos = 0, len_of_properties = 0, len_of_var = 0;
+	uint32_t len, tmp, pos = 0, len_of_var = 0;
 	int      len_of_str = 0;
-	int32_t  rv         = 0, target_pos;
-	uint8_t  property_id;
+	int32_t  rv         = 0;
 
 	if (packet[pos] != CMD_CONNECT) {
 		return (-1);
@@ -503,26 +502,26 @@ conn_handler(uint8_t *packet, conn_param *cparam)
 	return rv;
 }
 
-/**
- * @brief convert string from @format to utf-8 format
- * caller is responsible to free the memory returned
- */
-char *
-convert_to_utf8(char *src, char *format, size_t *len)
-{
-	size_t  ascii_len     = 10, utf8_len;
-	iconv_t iconv_obj     = iconv_open("utf-8", format);
-	char   *out_str       = calloc(strlen(src) * 2, sizeof(char));
-	char   *out_str_start = out_str;
+// /**
+//  * @brief convert string from @format to utf-8 format
+//  * caller is responsible to free the memory returned
+//  */
+// char *
+// convert_to_utf8(char *src, char *format, size_t *len)
+// {
+// 	size_t  ascii_len     = 10, utf8_len;
+// 	iconv_t iconv_obj     = iconv_open("utf-8", format);
+// 	char *  out_str       = calloc(strlen(src) * 2, sizeof(char));
+// 	char *  out_str_start = out_str;
 
-	size_t in_str_bytes_left  = strlen(src);
-	size_t out_str_bytes_left = strlen(src) * 2;
-	int iconv_return = iconv(iconv_obj, &src, &in_str_bytes_left, &out_str,
-	    &out_str_bytes_left);
-	iconv_close(iconv_obj);
-	*len = out_str_bytes_left;
-	return out_str_start;
-}
+// 	size_t in_str_bytes_left  = strlen(src);
+// 	size_t out_str_bytes_left = strlen(src) * 2;
+// 	int iconv_return = iconv(iconv_obj, &src, &in_str_bytes_left, &out_str,
+// 	    &out_str_bytes_left);
+// 	iconv_close(iconv_obj);
+// 	*len = out_str_bytes_left;
+// 	return out_str_start;
+// }
 
 /**
  * @brief handle and encode CONNACK packet
@@ -556,12 +555,7 @@ nmq_connack_encode(nng_msg *msg, conn_param *cparam, uint8_t reason)
 void
 nmq_connack_session(nng_msg *msg, bool session)
 {
-	uint8_t *body;
-	uint8_t  len;
-	size_t   pos = 0;
-	body       = nni_msg_body(msg);
-	// len          = get_var_integer(body + 1, &pos);
-	body       = body + pos;
+	uint8_t *body = nni_msg_body(msg);
 	if (session) {
 		*body = 0x01;
 	} else {
@@ -778,12 +772,12 @@ nano_msg_composer(nng_msg **msgp, uint8_t retain, uint8_t qos,
 		ptr = ptr + 2;
 	}
 
-	if(proto_ver == PROTOCOL_VERSION_v5) {
+	if (proto_ver == PROTOCOL_VERSION_v5) {
 		uint8_t property_len = 0;
 		memcpy(ptr, &property_len, 1);
 		++ptr;
 	}
-	
+
 	memcpy(ptr, payload->body, payload->len);
 	nni_msg_set_payload_ptr(msg, ptr);
 
@@ -1045,7 +1039,7 @@ nmq_pubres_decode(nng_msg *msg, uint16_t *packet_id, uint8_t *reason_code,
 		return MQTT_SUCCESS;
 	}
 
-	uint32_t pos      = (uint32_t)(buf.curpos - body);
+	uint32_t pos      = (uint32_t) (buf.curpos - body);
 	uint32_t prop_len = 0;
 
 	*prop = decode_properties(msg, &pos, &prop_len);
