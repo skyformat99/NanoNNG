@@ -319,6 +319,7 @@ nano_ctx_send(void *arg, nni_aio *aio)
 	int        rv;
 	uint32_t   pipe;
 	size_t     qos = 0;
+	uint16_t   packetid;
 
 	msg = nni_aio_get_msg(aio);
 	qos = NANO_NNI_LMQ_GET_QOS_BITS(msg);
@@ -358,6 +359,14 @@ nano_ctx_send(void *arg, nni_aio *aio)
 	}
 	nni_mtx_unlock(&s->lk);
 	nni_mtx_lock(&p->lk);
+
+	// Cache session msg
+	if (p->closed && qos > 0) {
+		nni_msg_clone(msg);
+		msg = NANO_NNI_LMQ_PACKED_MSG_QOS(msg, qos);
+		packetid = nni_pipe_inc_packetid(p->pipe);
+		nni_id_set(p->pipe->nano_qos_db, packetid, msg);
+	}
 
 	if (!p->busy) {
 		p->busy = true;
@@ -482,8 +491,6 @@ nano_pipe_fini(void *arg)
 
 	nni_id_map * nano_qos_db = p->pipe->nano_qos_db;
 
-	//TODO safely free the msgs in qos_db
-	// nni_id_iterate(nano_qos_db, nni_id_msgfree_cb);
 	nni_id_map_fini(nano_qos_db);
 	nng_free(nano_qos_db, sizeof(struct nni_id_map));
 
@@ -516,7 +523,6 @@ nano_pipe_init(void *arg, nni_pipe *pipe, void *s)
 	p->kicked                  = false;
 	p->conn_param              = nni_pipe_get_conn_param(pipe);
 	p->tree                    = sock->db;
-	p->conn_param->nano_qos_db = p->pipe->nano_qos_db;
 
 	return (0);
 }
@@ -561,17 +567,6 @@ nano_pipe_start(void *arg)
 	if (clientid) {
 		clientid_key = DJBHashn(clientid, strlen(clientid));
 		restore_session(clientid_key, p->conn_param, p->id, p->tree);
-	}
-
-	// restore cached qos msg
-	if (clientid && dbhash_cached_check_id(clientid_key)) {
-		msgq = (nni_msg **) dbtree_restore_session_msg(
-		    p->tree, clientid_key);
-		for (int i = 0; i < (int) cvector_size(msgq); i++) {
-			pid = nni_pipe_inc_packetid(npipe);
-			nni_id_set(npipe->nano_qos_db, pid, msgq[i]);
-		}
-		cvector_free(msgq);
 	}
 
 	// TODO MQTT V5 check return code
@@ -630,14 +625,6 @@ nano_pipe_close(void *arg)
 		clientid_key = DJBHashn(clientid, strlen(clientid));
 		// cache subscription of session
 		cache_session(clientid_key, p->conn_param, p->id, p->tree);
-
-		// cache qos msg TODO optimization in processing
-		while ((msg = nni_id_get_any(npipe->nano_qos_db, &packetid))) {
-			while (nni_msg_shared(msg))
-				nni_msg_free(msg);
-			dbtree_cache_session_msg(p->tree, msg, clientid_key);
-			nni_id_remove(npipe->nano_qos_db, packetid);
-		}
 	}
 
 	// TODO send disconnect msg to client if needed.
