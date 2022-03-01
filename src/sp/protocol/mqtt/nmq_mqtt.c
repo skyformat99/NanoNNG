@@ -527,8 +527,7 @@ nano_pipe_start(void *arg)
 	nano_pipe *p = arg;
 	nano_sock *s = p->rep;
 	nni_msg *  msg;
-	uint8_t    rv; // reason code of CONNACK
-	uint8_t    buf[4] = { 0x20, 0x02, 0x00, 0x00 };
+	uint8_t    rv, reason; // reason code of CONNACK
 	nni_pipe * npipe = p->pipe;
 	char *     clientid = NULL;
 	uint32_t   clientid_key = 0;
